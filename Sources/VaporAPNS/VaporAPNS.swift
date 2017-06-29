@@ -129,7 +129,7 @@ open class VaporAPNS {
         if ret == CURLE_OK {
             // Create string from Data
             let str = String.init(data: writeStorage.data, encoding: .utf8)!
-            
+            print(str)
             // Split into two pieces by '\r\n\r\n' as the response has two newlines before the returned data. This causes us to have two pieces, the headers/crap and the server returned data
             let splittedString = str.components(separatedBy: "\r\n\r\n")
             
@@ -140,12 +140,16 @@ open class VaporAPNS {
             
             if responseData != "" {
                 // Get JSON from loaded data string
-                let jsonNode = JSON(.bytes(responseData.makeBytes()), in: nil).makeNode(in: nil)
-                if let reason = jsonNode["reason"]?.string {
-                    result = Result.error(apnsId: message.messageId, deviceToken: deviceToken, error: APNSError.init(errorReason: reason))
-                } else {
-                    result = Result.success(apnsId: message.messageId, deviceToken: deviceToken, serviceStatus: .success)
-                }
+                do {
+                     let jsonNode = try JSON(bytes: responseData.makeBytes()).makeNode(in: nil)
+                     if let reason = jsonNode["reason"]?.string {
+                         result = Result.error(apnsId: message.messageId, deviceToken: deviceToken, error: APNSError.init(errorReason: reason))
+                     } else {
+                         result = Result.success(apnsId: message.messageId, deviceToken: deviceToken, serviceStatus: .success)
+                     }
+                 } catch let e {
+                     result = Result.error(apnsId: message.messageId, deviceToken: deviceToken, error: APNSError.init(errorReason: e.localizedDescription))
+                  }
             } else {
                 result = Result.success(apnsId: message.messageId, deviceToken: deviceToken, serviceStatus: .success)
             }
